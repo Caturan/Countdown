@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Timer</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            background-color: lightcoral; 
+        }
+        #timer {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Set Your Timer</h1>
+    <form id="timer-form">
+        <label for="time">Enter time in seconds:</label>
+        <input type="number" id="time" name="time" min="1" required>
+        <button type="submit">Start Timer</button>
+    </form>
+    <div id="timer"></div>
+    <audio id="alarm-sound" src="{{ url_for('static', filename='alarm_sound.mp3') }}" preload="auto"></audio>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+        document.getElementById('timer-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const timeInput = document.getElementById('time').value;
+            startTimer(timeInput);
+        });
+
+        function startTimer(duration) {
+            fetch('/start_timer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `time=${duration}`
+            }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'Timer started!') {
+                    updateTimer();
+                }
+            });
+        }
+
+        function updateTimer() {
+            const timerDisplay = document.getElementById('timer');
+            const alarmSound = document.getElementById('alarm-sound');
+
+            const interval = setInterval(() => {
+                fetch('/get_time')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.done) {
+                        clearInterval(interval);
+                        timerDisplay.textContent = "Time's up!";
+                        alarmSound.play();
+                        triggerConfetti();
+                    } else {
+                        timerDisplay.textContent = data.time;
+                    }
+                });
+            }, 1000);
+        }
+
+        function triggerConfetti() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+    </script>
+</body>
+</html>
